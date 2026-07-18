@@ -32,12 +32,25 @@ def reload() -> list[dict]:
     return _cache
 
 
-def list_alerts(tier: str | None = None, limit: int | None = 20) -> list[dict]:
+def _filtered(tier: str | None, min_score: float | None) -> list[dict]:
     alerts = _load()
     if tier:
         alerts = [a for a in alerts if a["risk_tier"] == tier.upper()]
-    alerts = sorted(alerts, key=lambda a: a["risk_score"], reverse=True)
+    if min_score is not None:
+        alerts = [a for a in alerts if a["risk_score"] >= min_score]
+    return sorted(alerts, key=lambda a: a["risk_score"], reverse=True)
+
+
+def list_alerts(tier: str | None = None, limit: int | None = 20) -> list[dict]:
+    alerts = _filtered(tier, None)
     return alerts[:limit] if limit else alerts
+
+
+def page_alerts(
+    tier: str | None, min_score: float | None, offset: int, limit: int
+) -> tuple[list[dict], int]:
+    alerts = _filtered(tier, min_score)
+    return alerts[offset : offset + limit], len(alerts)
 
 
 def get_alert(alert_id: str) -> dict | None:

@@ -31,7 +31,8 @@ to the model's imagination.
     safest, always-answerable intent) if no keyword matches, and the response explicitly says the
     question was interpreted broadly.
   - Instantiates the matching specialist agent (`AnalystAgent`, `InvestigatorAgent`, `ReporterAgent`)
-    and dispatches.
+    and dispatches. `dispatch()` returns `{intent, agent, answer, sources}` — `agent` is the specialist's
+    name, surfaced end-to-end so the chat UI can show which agent produced each answer (spec 09).
 - `platform/mcp_server/agents/analyst.py` (pattern_analysis), `investigator.py` (alert_lookup + similar_cases),
   `reporter.py` (report_request) — each calls only the tools listed above.
 - `platform/mcp_server/server.py` — `FastMCP` app exposing the tools in `tools/` as MCP tools, and one

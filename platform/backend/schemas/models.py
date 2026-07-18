@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class ShapFeature(BaseModel):
@@ -22,10 +22,30 @@ class Alert(BaseModel):
     classifier_score: float
 
 
+class SignalComponent(BaseModel):
+    score: float
+    weight: float
+    contribution: float
+
+
+class SignalBreakdown(BaseModel):
+    classifier: SignalComponent
+    dbscan: SignalComponent
+    risk_score: float
+
+
 class AlertDetail(Alert):
     features: dict[str, float]
     shap_explanation: list[ShapFeature]
     narrative: str
+    signal_breakdown: SignalBreakdown
+
+
+class AlertPage(BaseModel):
+    items: list[Alert]
+    total: int
+    limit: int
+    offset: int
 
 
 class StatsSummary(BaseModel):
@@ -53,10 +73,12 @@ class Report(BaseModel):
 
 
 class ChatRequest(BaseModel):
-    question: str
+    question: str = Field(min_length=1, max_length=500)
 
 
 class ChatResponse(BaseModel):
     answer: str
     intent: str
+    agent: str
     sources: list[str]
+    ok: bool = True

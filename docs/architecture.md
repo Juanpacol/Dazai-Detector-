@@ -64,7 +64,7 @@ sequenceDiagram
 | **Facade** | `HybridFraudDetector` | One simple `.fit()`/`.score()` API hides two different ML models underneath. |
 | **Adapter** | `LLMProvider` + `OpenAICompatibleProvider`/`TemplateNarrativeProvider` | Narrative generation doesn't care which LLM (or none) is behind it. |
 | **Builder** | `ReportBuilder` | Reports are assembled from independent optional pieces (stats, patterns, narratives) step by step. |
-| **Repository** | `AlertRepository`, `ReportRepository` | Only one place in the codebase touches the JSON files on disk. |
+| **Repository** | `AlertRepository`, `ReportRepository`, `NarrativeRepository` | Only one place in the codebase touches the JSON files on disk. |
 | **Singleton** | `ChromaStore` | One persistent Chroma client per process; avoids re-opening the on-disk index. |
 | **Router + Factory** | `IntentRouter` | Classifies a question then constructs/dispatches the right specialist agent — new intents plug in without touching existing agents. |
 

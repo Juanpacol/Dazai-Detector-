@@ -64,6 +64,7 @@ class IntentRouter:
         response: AgentResponse = agent.respond(question)
         return {
             "intent": intent,
+            "agent": agent.name,
             "answer": response.answer,
             "sources": response.sources,
         }

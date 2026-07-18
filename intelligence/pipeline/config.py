@@ -23,6 +23,7 @@ CLASSIFIER_PATH = ARTIFACTS_DIR / "classifier.joblib"
 OUTPUTS_DIR = PROJECT_ROOT / "data" / "outputs"
 ALERTS_PATH = OUTPUTS_DIR / "alerts.json"
 REPORTS_DIR = OUTPUTS_DIR / "reports"
+NARRATIVES_PATH = OUTPUTS_DIR / "narratives.json"
 
 CHROMA_DIR = Path(os.getenv("CHROMA_DIR", str(OUTPUTS_DIR / "chroma")))
 CHROMA_COLLECTION_NAME = "alerts"
@@ -70,6 +71,9 @@ LLM_BASE_URL = os.getenv("LLM_BASE_URL", "https://api.openai.com/v1")
 # --- Backend ---------------------------------------------------------------
 
 BACKEND_CORS_ORIGINS = os.getenv("BACKEND_CORS_ORIGINS", "http://localhost:5173").split(",")
+
+ALERTS_DEFAULT_LIMIT = 25
+ALERTS_MAX_LIMIT = 100
 
 
 def risk_tier_for(score: float) -> str:

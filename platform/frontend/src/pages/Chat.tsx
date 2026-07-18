@@ -1,6 +1,9 @@
-import { useState } from "react";
+import { RotateCcw, Send, Trash2 } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 
 import { api } from "../api/client";
+import { AgentBadge } from "../components/AgentBadge";
+import { TypingIndicator } from "../components/TypingIndicator";
 import type { ChatMessage, ChatResponse } from "../types";
 
 const SUGGESTIONS = [
@@ -10,13 +13,30 @@ const SUGGESTIONS = [
   "Give me a summary of high-risk activity",
 ];
 
+const HISTORY_KEY = "dazai-chat-history";
+
+function loadHistory(): ChatMessage[] {
+  try {
+    const raw = sessionStorage.getItem(HISTORY_KEY);
+    return raw ? (JSON.parse(raw) as ChatMessage[]) : [];
+  } catch {
+    return [];
+  }
+}
+
 export default function Chat() {
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [messages, setMessages] = useState<ChatMessage[]>(loadHistory);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+  const bottomRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    sessionStorage.setItem(HISTORY_KEY, JSON.stringify(messages));
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
 
   const send = async (question: string) => {
-    if (!question.trim()) return;
+    if (!question.trim() || loading) return;
     setMessages((prev) => [...prev, { role: "user", text: question }]);
     setInput("");
     setLoading(true);
@@ -25,46 +45,94 @@ export default function Chat() {
       const response = await api.post<ChatResponse>("/chat", { question });
       setMessages((prev) => [
         ...prev,
-        { role: "assistant", text: response.answer, sources: response.sources, intent: response.intent },
+        {
+          role: "assistant",
+          text: response.answer,
+          sources: response.sources,
+          intent: response.intent,
+          agent: response.agent,
+          ok: response.ok,
+        },
       ]);
-    } catch (e) {
-      setMessages((prev) => [...prev, { role: "assistant", text: `Error: ${(e as Error).message}` }]);
+    } catch {
+      setMessages((prev) => [
+        ...prev,
+        { role: "assistant", text: "Couldn't reach the server. Check your connection and try again.", failed: true },
+      ]);
     } finally {
       setLoading(false);
     }
   };
 
+  const retry = () => {
+    const lastUser = [...messages].reverse().find((m) => m.role === "user");
+    if (lastUser) send(lastUser.text);
+  };
+
+  const clearHistory = () => {
+    setMessages([]);
+    sessionStorage.removeItem(HISTORY_KEY);
+  };
+
   return (
-    <div className="flex h-[calc(100vh-8rem)] flex-col gap-4">
-      <div className="flex flex-wrap gap-2">
-        {SUGGESTIONS.map((s) => (
+    <div className="flex h-[calc(100vh-9rem)] flex-col gap-4">
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex flex-wrap gap-2">
+          {SUGGESTIONS.map((s) => (
+            <button
+              key={s}
+              onClick={() => send(s)}
+              disabled={loading}
+              className="rounded-full bg-white/[0.03] px-3 py-1 text-xs text-slate-400 ring-1 ring-inset ring-white/[0.06] hover:text-slate-200 disabled:opacity-40"
+            >
+              {s}
+            </button>
+          ))}
+        </div>
+        {messages.length > 0 && (
           <button
-            key={s}
-            onClick={() => send(s)}
-            className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs text-slate-600 hover:bg-slate-50"
+            onClick={clearHistory}
+            className="flex shrink-0 items-center gap-1 text-xs text-slate-500 hover:text-slate-300"
           >
-            {s}
+            <Trash2 size={13} /> Clear
           </button>
-        ))}
+        )}
       </div>
 
-      <div className="flex-1 space-y-3 overflow-y-auto rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+      <div className="flex-1 space-y-3 overflow-y-auto rounded-2xl border border-white/[0.06] bg-ink-900 p-4">
         {messages.length === 0 && (
-          <p className="text-slate-500">Ask about a specific alert, a pattern, similar cases, or a summary.</p>
+          <p className="text-sm text-slate-500">
+            Ask about a specific alert, a pattern, similar cases, or a summary.
+          </p>
         )}
         {messages.map((m, i) => (
-          <div key={i} className={m.role === "user" ? "text-right" : "text-left"}>
+          <div key={i} className={m.role === "user" ? "flex justify-end" : "flex flex-col items-start gap-1"}>
             <div
-              className={`inline-block max-w-[80%] rounded-lg px-4 py-2 text-sm ${
-                m.role === "user" ? "bg-slate-900 text-white" : "bg-slate-100 text-slate-800"
+              className={`inline-block max-w-[80%] rounded-2xl px-4 py-2.5 text-sm ${
+                m.role === "user"
+                  ? "bg-accent-600 text-white"
+                  : m.failed
+                    ? "bg-red-500/10 text-red-300 ring-1 ring-inset ring-red-500/20"
+                    : m.ok === false
+                      ? "bg-amber-500/10 text-amber-200 ring-1 ring-inset ring-amber-500/20"
+                      : "bg-ink-800 text-slate-200"
               }`}
             >
-              {m.text}
+              <p className="whitespace-pre-line">{m.text}</p>
+              {m.failed && (
+                <button
+                  onClick={retry}
+                  className="mt-2 flex items-center gap-1 text-xs font-medium text-red-300 hover:text-red-200"
+                >
+                  <RotateCcw size={12} /> Retry
+                </button>
+              )}
             </div>
-            {m.sources && m.sources.length > 0 && (
-              <div className="mt-1 flex flex-wrap gap-1">
-                {m.sources.map((s) => (
-                  <span key={s} className="rounded bg-blue-50 px-2 py-0.5 text-xs text-blue-700">
+            {m.role === "assistant" && m.agent && (
+              <div className="flex flex-wrap items-center gap-1.5 px-1">
+                <AgentBadge agent={m.agent} />
+                {m.sources?.map((s) => (
+                  <span key={s} className="pill bg-white/[0.03] text-slate-500 ring-white/[0.06]">
                     based on: {s}
                   </span>
                 ))}
@@ -72,7 +140,8 @@ export default function Chat() {
             )}
           </div>
         ))}
-        {loading && <p className="text-slate-400">Thinking...</p>}
+        {loading && <TypingIndicator />}
+        <div ref={bottomRef} />
       </div>
 
       <form
@@ -85,11 +154,16 @@ export default function Chat() {
         <input
           value={input}
           onChange={(e) => setInput(e.target.value)}
+          disabled={loading}
           placeholder="Ask a question..."
-          className="flex-1 rounded-md border border-slate-300 px-3 py-2 text-sm"
+          className="flex-1 rounded-xl border border-white/[0.08] bg-ink-900 px-3 py-2.5 text-sm text-slate-200 placeholder:text-slate-600 focus:border-accent-600/50 focus:outline-none disabled:opacity-60"
         />
-        <button type="submit" className="rounded-md bg-slate-900 px-4 py-2 text-sm text-white">
-          Send
+        <button
+          type="submit"
+          disabled={loading || !input.trim()}
+          className="flex items-center gap-1.5 rounded-xl bg-accent-600 px-4 py-2.5 text-sm font-medium text-white shadow-glow hover:bg-accent-500 disabled:opacity-40"
+        >
+          <Send size={14} /> Send
         </button>
       </form>
     </div>

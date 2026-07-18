@@ -1,15 +1,25 @@
-from fastapi import APIRouter, HTTPException
+from typing import Literal
 
-from backend.schemas.models import AlertDetail
+from fastapi import APIRouter, HTTPException, Query
+
+from backend.schemas.models import AlertDetail, AlertPage
 from backend.services.alert_service import AlertService
+from intelligence.pipeline import config
 
 router = APIRouter(prefix="/alerts", tags=["alerts"])
 _service = AlertService()
 
+RiskTier = Literal["LOW", "MEDIUM", "HIGH", "CRITICAL"]
 
-@router.get("", response_model=list[dict])
-def list_alerts(tier: str | None = None, limit: int | None = 50):
-    return _service.list(tier=tier, limit=limit)
+
+@router.get("", response_model=AlertPage)
+def list_alerts(
+    tier: RiskTier | None = None,
+    min_score: float | None = Query(default=None, ge=0.0, le=1.0),
+    offset: int = Query(default=0, ge=0),
+    limit: int = Query(default=config.ALERTS_DEFAULT_LIMIT, ge=1, le=config.ALERTS_MAX_LIMIT),
+):
+    return _service.page(tier=tier, min_score=min_score, offset=offset, limit=limit)
 
 
 @router.get("/{alert_id}", response_model=AlertDetail)

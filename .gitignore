@@ -20,6 +20,7 @@ intelligence/pipeline/artifacts/*.joblib
 platform/frontend/node_modules/
 platform/frontend/dist/
 platform/frontend/.env
+platform/frontend/*.tsbuildinfo
 
 # Env
 .env

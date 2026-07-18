@@ -17,10 +17,30 @@ export interface ShapFeature {
   direction: "increases" | "decreases";
 }
 
+export interface SignalComponent {
+  score: number;
+  weight: number;
+  contribution: number;
+}
+
+export interface SignalBreakdown {
+  classifier: SignalComponent;
+  dbscan: SignalComponent;
+  risk_score: number;
+}
+
 export interface AlertDetail extends Alert {
   features: Record<string, number>;
   shap_explanation: ShapFeature[];
   narrative: string;
+  signal_breakdown: SignalBreakdown;
+}
+
+export interface AlertPage {
+  items: Alert[];
+  total: number;
+  limit: number;
+  offset: number;
 }
 
 export interface StatsSummary {
@@ -53,7 +73,9 @@ export interface Report {
 export interface ChatResponse {
   answer: string;
   intent: string;
+  agent: string;
   sources: string[];
+  ok: boolean;
 }
 
 export interface ChatMessage {
@@ -61,4 +83,7 @@ export interface ChatMessage {
   text: string;
   sources?: string[];
   intent?: string;
+  agent?: string;
+  ok?: boolean;
+  failed?: boolean;
 }

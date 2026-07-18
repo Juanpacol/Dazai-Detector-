@@ -57,11 +57,12 @@ Implementation order and contracts: `docs/specs/00-overview.md` onward.
 - [x] RAG (spec 05)
 - [x] MCP multi-agent (spec 06)
 - [x] Backend API (spec 07)
-- [x] Frontend (spec 08) — functional and verified end-to-end; visual design pass still pending
+- [x] Frontend (spec 08) — functional and verified end-to-end
 - [x] Notebooks
 - [x] End-to-end verification (pipeline -> report -> RAG -> backend -> MCP -> frontend, all 4 chat intents)
 - [x] Docker Compose (`docker compose up --build` — one command, verified end-to-end)
 - [x] Free deployment: Hugging Face Space (backend) + Cloudflare Pages (frontend), verified locally
+- [x] UI hardening (spec 09) — dark/violet theme, resilient chat, paginated alerts, signal breakdown
 
 ## Log
 
@@ -108,3 +109,24 @@ Implementation order and contracts: `docs/specs/00-overview.md` onward.
   was `git init`'d (no commits made) since both platforms deploy via git and the repo had none yet —
   the user still needs to make the first commit and run the actual push themselves (requires their own
   HF/Cloudflare login).
+- First commit made and pushed to `github.com/Juanpacol/Dazai-Detector-` (`main`, no AI attribution —
+  confirmed this is a personal/portfolio repo, not the OpenAI hackathon submission, before pushing).
+- UI hardening pass (spec 09), driven by a Behance reference ("Aivora" AI workflow dashboard) whose
+  extracted design language (near-black bg, violet accent, pill badges, card-based sidebar layout) now
+  drives the frontend theme. Also addressed reviewer-style feedback: chat used to leak raw errors and
+  had no persisted history; `/api/alerts` had no pagination/limit validation; narrative "cache" was an
+  in-memory dict that would diverge across multiple worker processes; there was no visible "why/which
+  signal/which agent" trail. All fixed and verified for real (not just written):
+  - `chat_service.py` never lets an exception reach the route; drilled this by breaking the Chroma path
+    on a cold backend process and confirmed a real `ok:false` friendly-guidance response (HTTP 200, not
+    500) — the first attempt at this drill accidentally hit a stale warm process and looked like it
+    "worked" without truly testing the exception path; had to kill the actual PID holding the port to
+    get a valid cold-start test.
+  - `GET /api/alerts` now returns `AlertPage` with real validation (422 on `limit=1000` or `tier=BOGUS`).
+  - Narratives persist to `data/outputs/narratives.json` (atomic write) instead of a process-local dict.
+  - `AlertDetail` page now shows a `SignalBreakdown` panel (classifier vs DBSCAN weighted contribution)
+    between the narrative and the SHAP chart; chat answers show an `AgentBadge` (analyst/investigator/
+    reporter) plus source chips.
+  - Verified visually with real Playwright screenshots (chromium, zero console errors) of Dashboard,
+    Alerts, AlertDetail, Reports, and a live Chat exchange — including confirming chat history survives
+    a page reload via `sessionStorage`.

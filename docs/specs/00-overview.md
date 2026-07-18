@@ -7,7 +7,7 @@ where every spec produces a working artifact the next spec consumes.
 
 ## Scope
 
-Nine specs, implemented in numeric order. Each spec below states its **Goal**, **Scope**, **Contract**
+Ten specs, implemented in numeric order. Each spec below states its **Goal**, **Scope**, **Contract**
 (inputs/outputs other specs rely on), and **Acceptance criteria**.
 
 | # | Spec | Produces |
@@ -20,6 +20,7 @@ Nine specs, implemented in numeric order. Each spec below states its **Goal**, *
 | 06 | MCP multi-agent | FastMCP server exposing grounded tools + router |
 | 07 | Backend API | FastAPI REST surface over all of the above |
 | 08 | Frontend | React dashboard consuming the backend |
+| 09 | UI hardening | dark/violet theme, resilient chat, paginated alerts, signal breakdown |
 
 ## Non-goals
 
