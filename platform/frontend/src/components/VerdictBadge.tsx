@@ -1,3 +1,5 @@
+import { motion } from "motion/react";
+
 import type { CaseVerdict } from "../types";
 
 const VERDICT_STYLES: Record<CaseVerdict, string> = {
@@ -14,8 +16,16 @@ const VERDICT_LABELS: Record<CaseVerdict, string> = {
 
 export function VerdictBadge({ verdict }: { verdict: CaseVerdict }) {
   return (
-    <span className={`pill ${VERDICT_STYLES[verdict]}`} role="status" aria-label={`Verdict: ${VERDICT_LABELS[verdict]}`}>
+    <motion.span
+      key={verdict}
+      initial={{ scale: 0.85, opacity: 0 }}
+      animate={{ scale: 1, opacity: 1 }}
+      transition={{ type: "spring", stiffness: 400, damping: 22 }}
+      className={`pill ${VERDICT_STYLES[verdict]}`}
+      role="status"
+      aria-label={`Verdict: ${VERDICT_LABELS[verdict]}`}
+    >
       {VERDICT_LABELS[verdict]}
-    </span>
+    </motion.span>
   );
 }

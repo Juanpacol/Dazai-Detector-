@@ -3,6 +3,7 @@ import { Activity, Crosshair, Gauge, Target } from "lucide-react";
 import type { ModelMetrics } from "../types";
 import { ConfusionMatrixCard } from "./ConfusionMatrixCard";
 import { DriftBadge } from "./DriftBadge";
+import { SpotlightCard } from "./reactbits/SpotlightCard";
 import { StatCard } from "./StatCard";
 import { ThresholdCurveChart } from "./ThresholdCurveChart";
 
@@ -12,7 +13,7 @@ function toPercent(value: number): string {
 
 export function ModelHealthCard({ metrics }: { metrics: ModelMetrics }) {
   return (
-    <div className="card space-y-5 p-5">
+    <SpotlightCard className="card space-y-5 p-5">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h2 className="text-sm font-medium text-slate-300">Model Health</h2>
         <div className="flex items-center gap-3">
@@ -49,6 +50,6 @@ export function ModelHealthCard({ metrics }: { metrics: ModelMetrics }) {
           </div>
         </div>
       </div>
-    </div>
+    </SpotlightCard>
   );
 }

@@ -1,4 +1,5 @@
 import { ChevronLeft, ChevronRight, Download, Inbox, Search } from "lucide-react";
+import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 
@@ -196,26 +197,34 @@ export default function Alerts() {
             </tr>
           </thead>
           <tbody>
-            {page?.items.map((alert) => (
-              <tr key={alert.id} className="border-t border-white/[0.04] hover:bg-white/[0.02]">
-                <td className="px-4 py-3">
-                  <Link to={`/alerts/${alert.id}`} className="text-accent-400 hover:underline">
-                    {alert.id}
-                  </Link>
-                  <p className="text-xs text-slate-600">{new Date(alert.timestamp).toLocaleString()}</p>
-                </td>
-                <td className="px-4 py-3 text-slate-300">${alert.amount.toFixed(2)}</td>
-                <td className="px-4 py-3">
-                  <RiskScoreBar score={alert.risk_score} />
-                </td>
-                <td className="px-4 py-3">
-                  <TierBadge tier={alert.risk_tier} />
-                </td>
-                <td className="px-4 py-3">
-                  <VerdictBadge verdict={alert.verdict} />
-                </td>
-              </tr>
-            ))}
+            <AnimatePresence initial={false}>
+              {page?.items.map((alert, index) => (
+                <motion.tr
+                  key={alert.id}
+                  initial={{ opacity: 0, y: -6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.25, delay: Math.min(index, 10) * 0.02 }}
+                  className="border-t border-white/[0.04] hover:bg-white/[0.02]"
+                >
+                  <td className="px-4 py-3">
+                    <Link to={`/alerts/${alert.id}`} className="text-accent-400 hover:underline">
+                      {alert.id}
+                    </Link>
+                    <p className="text-xs text-slate-600">{new Date(alert.timestamp).toLocaleString()}</p>
+                  </td>
+                  <td className="px-4 py-3 text-slate-300">${alert.amount.toFixed(2)}</td>
+                  <td className="px-4 py-3">
+                    <RiskScoreBar score={alert.risk_score} />
+                  </td>
+                  <td className="px-4 py-3">
+                    <TierBadge tier={alert.risk_tier} />
+                  </td>
+                  <td className="px-4 py-3">
+                    <VerdictBadge verdict={alert.verdict} />
+                  </td>
+                </motion.tr>
+              ))}
+            </AnimatePresence>
           </tbody>
         </table>
         {page.items.length === 0 && !error && (

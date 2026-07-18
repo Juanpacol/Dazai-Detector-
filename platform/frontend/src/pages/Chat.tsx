@@ -1,4 +1,5 @@
 import { RotateCcw, Send, Trash2 } from "lucide-react";
+import { motion } from "motion/react";
 import { useEffect, useRef, useState } from "react";
 
 import { api } from "../api/client";
@@ -295,7 +296,13 @@ export default function Chat() {
           </p>
         )}
         {messages.map((m, i) => (
-          <div key={i} className={m.role === "user" ? "flex justify-end" : "flex flex-col items-start gap-1"}>
+          <motion.div
+            key={i}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
+            className={m.role === "user" ? "flex justify-end" : "flex flex-col items-start gap-1"}
+          >
             <div
               className={`inline-block max-w-[85%] rounded-2xl px-4 py-2.5 text-sm ${
                 m.role === "user"
@@ -329,9 +336,14 @@ export default function Chat() {
               <div className="flex flex-wrap items-center gap-1.5 px-1">
                 {m.agent && <AgentBadge agent={m.agent} />}
                 {typeof m.confidence === "number" && (
-                  <span className={`pill ring-1 ${evidenceBadgeStyle(m.verified, m.ok)}`}>
+                  <motion.span
+                    initial={{ scale: 0.8, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    transition={{ type: "spring", stiffness: 400, damping: 22 }}
+                    className={`pill ring-1 ${evidenceBadgeStyle(m.verified, m.ok)}`}
+                  >
                     confidence {m.confidence.toFixed(2)}
-                  </span>
+                  </motion.span>
                 )}
                 {typeof m.latency_ms === "number" && <span className="pill bg-white/[0.03] text-slate-500">latency {m.latency_ms}ms</span>}
                 {m.sources?.map((s) => (
@@ -344,7 +356,7 @@ export default function Chat() {
 
             {m.role === "assistant" && renderCitations(m.citations)}
             {m.role === "assistant" && renderToolTrace(m.tool_trace)}
-          </div>
+          </motion.div>
         ))}
         {loading && <TypingIndicator />}
         <div ref={bottomRef} />

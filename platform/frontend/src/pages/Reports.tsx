@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 
 import { api } from "../api/client";
 import { EmptyState } from "../components/EmptyState";
+import { FadeContent } from "../components/reactbits/FadeContent";
 import type { Report, ReportSummary } from "../types";
 
 export default function Reports() {
@@ -89,7 +90,9 @@ export default function Reports() {
 
       <div className="card p-6">
         {markdown ? (
-          <pre className="whitespace-pre-wrap font-sans text-sm leading-relaxed text-slate-400">{markdown}</pre>
+          <FadeContent key={selectedId ?? markdown.slice(0, 32)} duration={350}>
+            <pre className="whitespace-pre-wrap font-sans text-sm leading-relaxed text-slate-400">{markdown}</pre>
+          </FadeContent>
         ) : (
           <EmptyState icon={FileText} message='No report yet — click "Generate now".' />
         )}

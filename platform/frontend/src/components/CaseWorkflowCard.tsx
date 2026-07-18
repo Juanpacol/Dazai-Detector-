@@ -3,6 +3,8 @@ import { useEffect, useState } from "react";
 
 import { api } from "../api/client";
 import type { AlertDetail, AuditEntry, CaseStatus, CaseVerdict } from "../types";
+import { AnimatedList } from "./reactbits/AnimatedList";
+import { ClickSpark } from "./reactbits/ClickSpark";
 import { VerdictBadge } from "./VerdictBadge";
 
 const STATUSES: CaseStatus[] = ["open", "investigating", "resolved"];
@@ -98,25 +100,29 @@ export function CaseWorkflowCard({
       </div>
 
       <div className="flex flex-wrap gap-2">
-        <button
-          disabled={busy}
-          onClick={() => setVerdict("confirmed_fraud")}
-          className="flex items-center gap-1.5 rounded-lg bg-tier-critical/10 px-3 py-1.5 text-xs font-medium text-tier-critical ring-1 ring-inset ring-tier-critical/25 hover:bg-tier-critical/20 disabled:opacity-40"
-        >
-          <XCircle size={14} /> Confirm Fraud
-        </button>
-        <button
-          disabled={busy}
-          onClick={() => setVerdict("false_positive")}
-          className="flex items-center gap-1.5 rounded-lg bg-emerald-500/10 px-3 py-1.5 text-xs font-medium text-emerald-400 ring-1 ring-inset ring-emerald-500/25 hover:bg-emerald-500/20 disabled:opacity-40"
-        >
-          <CheckCircle2 size={14} /> False Positive
-        </button>
+        <ClickSpark sparkColor="#ef4444">
+          <button
+            disabled={busy}
+            onClick={() => setVerdict("confirmed_fraud")}
+            className="flex items-center gap-1.5 rounded-lg bg-tier-critical/10 px-3 py-1.5 text-xs font-medium text-tier-critical ring-1 ring-inset ring-tier-critical/25 transition-transform hover:bg-tier-critical/20 active:scale-95 disabled:opacity-40"
+          >
+            <XCircle size={14} /> Confirm Fraud
+          </button>
+        </ClickSpark>
+        <ClickSpark sparkColor="#22c55e">
+          <button
+            disabled={busy}
+            onClick={() => setVerdict("false_positive")}
+            className="flex items-center gap-1.5 rounded-lg bg-emerald-500/10 px-3 py-1.5 text-xs font-medium text-emerald-400 ring-1 ring-inset ring-emerald-500/25 transition-transform hover:bg-emerald-500/20 active:scale-95 disabled:opacity-40"
+          >
+            <CheckCircle2 size={14} /> False Positive
+          </button>
+        </ClickSpark>
         {alert.verdict !== "unreviewed" && (
           <button
             disabled={busy}
             onClick={() => setVerdict("unreviewed")}
-            className="rounded-lg px-3 py-1.5 text-xs text-slate-400 ring-1 ring-inset ring-white/[0.06] hover:text-slate-200 disabled:opacity-40"
+            className="rounded-lg px-3 py-1.5 text-xs text-slate-400 ring-1 ring-inset ring-white/[0.06] transition-transform hover:text-slate-200 active:scale-95 disabled:opacity-40"
           >
             Reset
           </button>
@@ -163,15 +169,15 @@ export function CaseWorkflowCard({
 
       <div>
         <h3 className="mb-2 text-xs font-medium uppercase tracking-wide text-slate-500">Notes</h3>
-        <div className="space-y-2">
+        <AnimatedList className="space-y-2">
           {alert.notes.map((note, i) => (
             <div key={i} className="rounded-lg border border-white/[0.06] bg-white/[0.02] p-2.5 text-xs text-slate-400">
               <p>{note.text}</p>
               <p className="mt-1 text-slate-600">{new Date(note.timestamp).toLocaleString()}</p>
             </div>
           ))}
-          {alert.notes.length === 0 && <p className="text-xs text-slate-600">No notes yet.</p>}
-        </div>
+        </AnimatedList>
+        {alert.notes.length === 0 && <p className="text-xs text-slate-600">No notes yet.</p>}
         <div className="mt-2 flex gap-2">
           <input
             value={noteText}
@@ -195,7 +201,7 @@ export function CaseWorkflowCard({
         <h3 className="mb-2 flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide text-slate-500">
           <History size={12} /> Audit Trail
         </h3>
-        <div className="space-y-2">
+        <AnimatedList className="space-y-2">
           {audit.map((entry, i) => (
             <div key={i} className="flex items-start gap-2 text-xs text-slate-500">
               <Clock size={12} className="mt-0.5 shrink-0" />
@@ -205,8 +211,8 @@ export function CaseWorkflowCard({
               </div>
             </div>
           ))}
-          {audit.length === 0 && <p className="text-xs text-slate-600">No actions recorded yet.</p>}
-        </div>
+        </AnimatedList>
+        {audit.length === 0 && <p className="text-xs text-slate-600">No actions recorded yet.</p>}
       </div>
     </div>
   );

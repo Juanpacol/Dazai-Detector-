@@ -1,12 +1,13 @@
 import { CheckCircle2, XCircle } from "lucide-react";
 
-import type { EvaluationReport } from "../types";
+import { SpotlightCard } from "./reactbits/SpotlightCard";
 import { StatCard } from "./StatCard";
+import type { EvaluationReport } from "../types";
 
 export function AssistantQualityCard({ report }: { report: EvaluationReport }) {
   const { summary, quality_gate: gate } = report;
   return (
-    <div className="card space-y-4 p-5">
+    <SpotlightCard className="card space-y-4 p-5">
       <div className="flex items-center justify-between">
         <h2 className="text-sm font-medium text-slate-300">Assistant Quality</h2>
         <span className={`flex items-center gap-1 text-xs font-medium ${gate.passed ? "text-emerald-400" : "text-tier-critical"}`}>
@@ -24,6 +25,6 @@ export function AssistantQualityCard({ report }: { report: EvaluationReport }) {
       <p className="text-xs text-slate-500">
         Based on {summary.cases} benchmark cases · {gate.reason}
       </p>
-    </div>
+    </SpotlightCard>
   );
 }

@@ -29,6 +29,20 @@ export default {
       boxShadow: {
         glow: "0 0 0 1px rgb(139 92 246 / 0.15), 0 8px 24px -8px rgb(139 92 246 / 0.35)",
       },
+      keyframes: {
+        shimmer: {
+          "0%": { backgroundPosition: "-200% 0" },
+          "100%": { backgroundPosition: "200% 0" },
+        },
+        pulseGlow: {
+          "0%, 100%": { boxShadow: "0 0 0 0 rgb(239 68 68 / 0.35)" },
+          "50%": { boxShadow: "0 0 0 6px rgb(239 68 68 / 0)" },
+        },
+      },
+      animation: {
+        shimmer: "shimmer 1.8s linear infinite",
+        "pulse-glow": "pulseGlow 2s ease-in-out infinite",
+      },
     },
   },
   plugins: [],

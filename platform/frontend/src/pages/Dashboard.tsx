@@ -4,10 +4,13 @@ import { Area, AreaChart, Bar, BarChart, CartesianGrid, ResponsiveContainer, Too
 
 import { api } from "../api/client";
 import { AssistantQualityCard } from "../components/AssistantQualityCard";
-import { CardSkeleton } from "../components/Skeleton";
 import { EmptyState } from "../components/EmptyState";
 import { ErrorState } from "../components/ErrorState";
 import { ModelHealthCard } from "../components/ModelHealthCard";
+import { AnimatedContent } from "../components/reactbits/AnimatedContent";
+import { FadeContent } from "../components/reactbits/FadeContent";
+import { SpotlightCard } from "../components/reactbits/SpotlightCard";
+import { CardSkeleton } from "../components/Skeleton";
 import { StatCard } from "../components/StatCard";
 import { TierTrendChart } from "../components/TierTrendChart";
 import type { EvaluationReport, ModelMetrics, StatsSummary, TrendsSummary } from "../types";
@@ -77,96 +80,105 @@ export default function Dashboard() {
         <StatCard label="High Tier" value={stats.tier_distribution.HIGH ?? 0} icon={ShieldCheck} />
       </div>
 
-      <div className="card p-5">
-        <div className="flex items-center justify-between">
-          <h2 className="text-sm font-medium text-slate-300">Analyst Feedback</h2>
-          <p className="text-xs text-slate-500">
-            {stats.reviewed_count} of {stats.total_alerts} alerts reviewed ({stats.review_rate.toFixed(1)}%)
-          </p>
-        </div>
-        <div className="mt-4 grid grid-cols-2 gap-4 md:grid-cols-4">
-          <StatCard
-            label="Observed Precision"
-            value={stats.observed_precision !== null ? `${stats.observed_precision.toFixed(1)}%` : "—"}
-            icon={CheckCircle2}
-          />
-          <StatCard label="Confirmed Fraud" value={stats.confirmed_count} icon={CheckCircle2} />
-          <StatCard label="False Positives" value={stats.false_positive_count} icon={XCircle} />
-          <StatCard label="Review Rate" value={`${stats.review_rate.toFixed(1)}%`} icon={ShieldCheck} />
-        </div>
-        {stats.observed_precision === null && (
-          <p className="mt-3 text-xs text-slate-500">
-            No alerts reviewed yet — confirm or dismiss alerts on their detail page to start measuring real-world precision.
-          </p>
-        )}
-      </div>
+      <AnimatedContent direction="up" delay={0}>
+        <SpotlightCard className="card p-5">
+          <div className="flex items-center justify-between">
+            <h2 className="text-sm font-medium text-slate-300">Analyst Feedback</h2>
+            <p className="text-xs text-slate-500">
+              {stats.reviewed_count} of {stats.total_alerts} alerts reviewed ({stats.review_rate.toFixed(1)}%)
+            </p>
+          </div>
+          <div className="mt-4 grid grid-cols-2 gap-4 md:grid-cols-4">
+            <StatCard
+              label="Observed Precision"
+              value={stats.observed_precision !== null ? `${stats.observed_precision.toFixed(1)}%` : "—"}
+              icon={CheckCircle2}
+            />
+            <StatCard label="Confirmed Fraud" value={stats.confirmed_count} icon={CheckCircle2} />
+            <StatCard label="False Positives" value={stats.false_positive_count} icon={XCircle} />
+            <StatCard label="Review Rate" value={`${stats.review_rate.toFixed(1)}%`} icon={ShieldCheck} />
+          </div>
+          {stats.observed_precision === null && (
+            <p className="mt-3 text-xs text-slate-500">
+              No alerts reviewed yet — confirm or dismiss alerts on their detail page to start measuring real-world
+              precision.
+            </p>
+          )}
+        </SpotlightCard>
+      </AnimatedContent>
 
       <div className="grid gap-4 lg:grid-cols-2">
-        <div className="card p-5">
-          <h2 id="chart-hour" className="mb-4 text-sm font-medium text-slate-300">
-            Alerts by Hour
-          </h2>
-          <div role="img" aria-labelledby="chart-hour">
-          <ResponsiveContainer width="100%" height={260}>
-            <AreaChart data={hourData}>
-              <defs>
-                <linearGradient id="hourFill" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#8b5cf6" stopOpacity={0.5} />
-                  <stop offset="100%" stopColor="#8b5cf6" stopOpacity={0} />
-                </linearGradient>
-              </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="#ffffff0f" vertical={false} />
-              <XAxis dataKey="hour" stroke="#64748b" tick={{ fill: "#94a3b8", fontSize: 11 }} />
-              <YAxis allowDecimals={false} stroke="#64748b" tick={{ fill: "#94a3b8", fontSize: 11 }} />
-              <Tooltip {...tooltipStyle} />
-              <Area type="monotone" dataKey="count" stroke="#8b5cf6" fill="url(#hourFill)" strokeWidth={2} />
-            </AreaChart>
-          </ResponsiveContainer>
-          </div>
-        </div>
+        <AnimatedContent direction="up" delay={0.05}>
+          <SpotlightCard className="card p-5">
+            <h2 id="chart-hour" className="mb-4 text-sm font-medium text-slate-300">
+              Alerts by Hour
+            </h2>
+            <div role="img" aria-labelledby="chart-hour">
+              <ResponsiveContainer width="100%" height={260}>
+                <AreaChart data={hourData}>
+                  <defs>
+                    <linearGradient id="hourFill" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#8b5cf6" stopOpacity={0.5} />
+                      <stop offset="100%" stopColor="#8b5cf6" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#ffffff0f" vertical={false} />
+                  <XAxis dataKey="hour" stroke="#64748b" tick={{ fill: "#94a3b8", fontSize: 11 }} />
+                  <YAxis allowDecimals={false} stroke="#64748b" tick={{ fill: "#94a3b8", fontSize: 11 }} />
+                  <Tooltip {...tooltipStyle} />
+                  <Area type="monotone" dataKey="count" stroke="#8b5cf6" fill="url(#hourFill)" strokeWidth={2} />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+          </SpotlightCard>
+        </AnimatedContent>
 
-        <div className="card p-5">
-          <h2 id="chart-bucket" className="mb-4 text-sm font-medium text-slate-300">
-            Alerts by Amount Bucket
-          </h2>
-          <div role="img" aria-labelledby="chart-bucket">
-            <ResponsiveContainer width="100%" height={260}>
-              <BarChart data={bucketData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#ffffff0f" vertical={false} />
-                <XAxis dataKey="bucket" stroke="#64748b" tick={{ fill: "#94a3b8", fontSize: 11 }} />
-                <YAxis allowDecimals={false} stroke="#64748b" tick={{ fill: "#94a3b8", fontSize: 11 }} />
-                <Tooltip {...tooltipStyle} />
-                <Bar dataKey="count" fill="#8b5cf6" radius={[6, 6, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
+        <AnimatedContent direction="up" delay={0.1}>
+          <SpotlightCard className="card p-5">
+            <h2 id="chart-bucket" className="mb-4 text-sm font-medium text-slate-300">
+              Alerts by Amount Bucket
+            </h2>
+            <div role="img" aria-labelledby="chart-bucket">
+              <ResponsiveContainer width="100%" height={260}>
+                <BarChart data={bucketData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#ffffff0f" vertical={false} />
+                  <XAxis dataKey="bucket" stroke="#64748b" tick={{ fill: "#94a3b8", fontSize: 11 }} />
+                  <YAxis allowDecimals={false} stroke="#64748b" tick={{ fill: "#94a3b8", fontSize: 11 }} />
+                  <Tooltip {...tooltipStyle} />
+                  <Bar dataKey="count" fill="#8b5cf6" radius={[6, 6, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </SpotlightCard>
+        </AnimatedContent>
       </div>
 
       {trends && Object.keys(trends.by_day).length > 0 && (
-        <div className="card p-5">
-          <div className="mb-4 flex items-center justify-between">
-            <h2 id="chart-trend" className="text-sm font-medium text-slate-300">
-              Alerts by Tier Over Time
-            </h2>
-            {trends.total_delta_pct !== null && (
-              <p className="text-xs text-slate-500">
-                {trends.current_period_total} in latest period vs {trends.previous_period_total} previous (
-                {trends.total_delta_pct > 0 ? "+" : ""}
-                {trends.total_delta_pct.toFixed(1)}%)
-              </p>
-            )}
-          </div>
-          <div role="img" aria-labelledby="chart-trend">
-            <TierTrendChart trends={trends} />
-          </div>
-        </div>
+        <AnimatedContent direction="up" delay={0.15}>
+          <SpotlightCard className="card p-5">
+            <div className="mb-4 flex items-center justify-between">
+              <h2 id="chart-trend" className="text-sm font-medium text-slate-300">
+                Alerts by Tier Over Time
+              </h2>
+              {trends.total_delta_pct !== null && (
+                <p className="text-xs text-slate-500">
+                  {trends.current_period_total} in latest period vs {trends.previous_period_total} previous (
+                  {trends.total_delta_pct > 0 ? "+" : ""}
+                  {trends.total_delta_pct.toFixed(1)}%)
+                </p>
+              )}
+            </div>
+            <div role="img" aria-labelledby="chart-trend">
+              <TierTrendChart trends={trends} />
+            </div>
+          </SpotlightCard>
+        </AnimatedContent>
       )}
 
       {modelMetrics && modelMetrics.drift.status !== "ok" && (
         <div
           className={`card flex items-center gap-3 p-4 text-sm ${
-            modelMetrics.drift.status === "alert" ? "text-tier-critical" : "text-tier-medium"
+            modelMetrics.drift.status === "alert" ? "text-tier-critical animate-pulse-glow" : "text-tier-medium"
           }`}
         >
           <AlertTriangle size={16} className="shrink-0" />
@@ -179,7 +191,9 @@ export default function Dashboard() {
       )}
 
       {modelMetrics ? (
-        <ModelHealthCard metrics={modelMetrics} />
+        <FadeContent>
+          <ModelHealthCard metrics={modelMetrics} />
+        </FadeContent>
       ) : !modelMetricsAvailable ? (
         <div className="card p-5">
           <h2 className="mb-2 text-sm font-medium text-slate-300">Model Health</h2>
@@ -188,7 +202,9 @@ export default function Dashboard() {
       ) : null}
 
       {evaluation ? (
-        <AssistantQualityCard report={evaluation} />
+        <FadeContent>
+          <AssistantQualityCard report={evaluation} />
+        </FadeContent>
       ) : !evaluationAvailable ? (
         <div className="card p-5">
           <h2 className="mb-2 text-sm font-medium text-slate-300">Assistant Quality</h2>
