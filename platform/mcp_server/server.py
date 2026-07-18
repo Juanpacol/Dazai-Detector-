@@ -20,7 +20,8 @@ from fastmcp import FastMCP
 
 from mcp_server.agents.router import IntentRouter
 from mcp_server.tools import alert_tools, stats_tools
-from mcp_server.tools.rag_tools import search_similar as _search_similar
+from mcp_server.tools.rag_tools import search_similar_cases as _search_similar_cases
+from mcp_server.tools.report_tools import get_latest_report as _get_latest_report
 
 mcp = FastMCP("dazai-fraud-detector")
 _router = IntentRouter()
@@ -36,6 +37,30 @@ def list_alerts(tier: str | None = None, limit: int = 20) -> list[dict]:
 def get_alert(alert_id: str) -> dict | None:
     """Fetch one alert by its transaction ID, e.g. TXN-000123."""
     return alert_tools.get_alert(alert_id)
+
+
+@mcp.tool()
+def get_alert_context(alert_id: str) -> dict | None:
+    """Fetch alert details plus narrative, evidence, and provenance."""
+    return alert_tools.get_alert_context(alert_id)
+
+
+@mcp.tool()
+def get_provenance(alert_id: str) -> dict:
+    """Fetch provenance metadata for a single alert."""
+    return alert_tools.get_provenance(alert_id)
+
+
+@mcp.tool()
+def get_citations(alert_id: str) -> list[dict]:
+    """Fetch structured citations for a single alert."""
+    return alert_tools.get_citations(alert_id)
+
+
+@mcp.tool()
+def explain_risk_score(alert_id: str) -> dict | None:
+    """Explain how classifier and DBSCAN contribute to the final risk score."""
+    return alert_tools.explain_risk_score(alert_id)
 
 
 @mcp.tool()
@@ -57,9 +82,27 @@ def tier_distribution() -> dict:
 
 
 @mcp.tool()
-def search_similar(query: str, k: int = 5, tier_filter: str | None = None) -> list[dict]:
+def get_dashboard_summary() -> dict:
+    """Dashboard-ready statistics with citations."""
+    return stats_tools.dashboard_summary()
+
+
+@mcp.tool()
+def search_similar_cases(query: str, k: int = 5, tier_filter: str | None = None) -> list[dict]:
     """Semantic search over past alert narratives using the ChromaDB RAG store."""
-    return _search_similar(query, k=k, tier_filter=tier_filter)
+    return _search_similar_cases(query, k=k, tier_filter=tier_filter)
+
+
+@mcp.tool()
+def search_similar(query: str, k: int = 5, tier_filter: str | None = None) -> list[dict]:
+    """Backward-compatible alias for `search_similar_cases`."""
+    return _search_similar_cases(query, k=k, tier_filter=tier_filter)
+
+
+@mcp.tool()
+def get_report_latest() -> dict | None:
+    """Fetch the most recently generated report with provenance."""
+    return _get_latest_report()
 
 
 @mcp.tool()

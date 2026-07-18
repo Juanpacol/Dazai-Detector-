@@ -29,11 +29,31 @@ export interface SignalBreakdown {
   risk_score: number;
 }
 
+export interface Citation {
+  source: string;
+  tool: string;
+  reference: string;
+  field?: string | null;
+  value?: string | number | boolean | null;
+  timestamp?: string | null;
+  snippet?: string | null;
+}
+
+export interface ToolTrace {
+  tool: string;
+  action: string;
+  details: Record<string, string | number | boolean>;
+  status: string;
+  latency_ms?: number | null;
+}
+
 export interface AlertDetail extends Alert {
   features: Record<string, number>;
   shap_explanation: ShapFeature[];
   narrative: string;
   signal_breakdown: SignalBreakdown;
+  citations: Citation[];
+  provenance: Record<string, string>;
 }
 
 export interface AlertPage {
@@ -75,6 +95,11 @@ export interface ChatResponse {
   intent: string;
   agent: string;
   sources: string[];
+  citations: Citation[];
+  confidence: number;
+  tool_trace: ToolTrace[];
+  latency_ms: number;
+  verified: boolean;
   ok: boolean;
 }
 
@@ -86,4 +111,11 @@ export interface ChatMessage {
   agent?: string;
   ok?: boolean;
   failed?: boolean;
+  citations?: Citation[];
+  confidence?: number;
+  tool_trace?: ToolTrace[];
+  latency_ms?: number;
+  verified?: boolean;
+  streaming?: boolean;
+  progress?: string[];
 }

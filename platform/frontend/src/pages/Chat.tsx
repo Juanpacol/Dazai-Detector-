@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { api } from "../api/client";
 import { AgentBadge } from "../components/AgentBadge";
 import { TypingIndicator } from "../components/TypingIndicator";
-import type { ChatMessage, ChatResponse } from "../types";
+import type { ChatMessage, ChatResponse, Citation, ToolTrace } from "../types";
 
 const SUGGESTIONS = [
   "Why was TXN-000123 flagged?",
@@ -24,43 +24,183 @@ function loadHistory(): ChatMessage[] {
   }
 }
 
+function citationLabel(citation: Citation): string {
+  return `${citation.tool}${citation.field ? ` · ${citation.field}` : ""}`;
+}
+
+function updateAssistantMessage(
+  messages: ChatMessage[],
+  updater: (message: ChatMessage) => ChatMessage,
+): ChatMessage[] {
+  const next = [...messages];
+  const index = [...next].reverse().findIndex((m) => m.role === "assistant");
+  if (index === -1) return next;
+  const actualIndex = next.length - 1 - index;
+  next[actualIndex] = updater(next[actualIndex]);
+  return next;
+}
+
+function assistantPlaceholder(): ChatMessage {
+  return {
+    role: "assistant",
+    text: "",
+    sources: [],
+    citations: [],
+    tool_trace: [],
+    confidence: 0,
+    latency_ms: 0,
+    verified: false,
+    ok: false,
+    streaming: true,
+    progress: ["Connecting to the assistant..."],
+  };
+}
+
+function evidenceBadgeStyle(verified?: boolean, ok?: boolean) {
+  if (ok === false) return "bg-amber-500/10 text-amber-200 ring-amber-500/20";
+  if (verified) return "bg-emerald-500/10 text-emerald-200 ring-emerald-500/20";
+  return "bg-white/[0.04] text-slate-400 ring-white/[0.08]";
+}
+
 export default function Chat() {
   const [messages, setMessages] = useState<ChatMessage[]>(loadHistory);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const closeStreamRef = useRef<null | (() => void)>(null);
+  const finalizedRef = useRef(false);
 
   useEffect(() => {
     sessionStorage.setItem(HISTORY_KEY, JSON.stringify(messages));
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
+  useEffect(() => {
+    return () => {
+      closeStreamRef.current?.();
+    };
+  }, []);
+
+  const finishWithResponse = (response: ChatResponse) => {
+    finalizedRef.current = true;
+    setMessages((prev) =>
+      updateAssistantMessage(prev, (message) => ({
+        ...message,
+        text: response.answer,
+        sources: response.sources,
+        citations: response.citations,
+        intent: response.intent,
+        agent: response.agent,
+        confidence: response.confidence,
+        tool_trace: response.tool_trace,
+        latency_ms: response.latency_ms,
+        verified: response.verified,
+        ok: response.ok,
+        streaming: false,
+        progress: [...(message.progress ?? []), response.verified ? "Verified answer." : "Answer returned."],
+      })),
+    );
+    setLoading(false);
+  };
+
   const send = async (question: string) => {
     if (!question.trim() || loading) return;
-    setMessages((prev) => [...prev, { role: "user", text: question }]);
+
+    closeStreamRef.current?.();
+    finalizedRef.current = false;
+    setMessages((prev) => [...prev, { role: "user", text: question }, assistantPlaceholder()]);
     setInput("");
     setLoading(true);
 
+    const fallback = async () => {
+      try {
+        const response = await api.post<ChatResponse>("/chat", { question });
+        finishWithResponse(response);
+      } catch (error) {
+        setMessages((prev) =>
+          updateAssistantMessage(prev, (message) => ({
+            ...message,
+            text: `Couldn't reach the server. ${(error as Error).message}`,
+            ok: false,
+            failed: true,
+            streaming: false,
+            progress: [...(message.progress ?? []), "Request failed."],
+          })),
+        );
+        setLoading(false);
+      }
+    };
+
     try {
-      const response = await api.post<ChatResponse>("/chat", { question });
-      setMessages((prev) => [
-        ...prev,
-        {
-          role: "assistant",
-          text: response.answer,
-          sources: response.sources,
-          intent: response.intent,
-          agent: response.agent,
-          ok: response.ok,
+      closeStreamRef.current = api.streamChat(question, {
+        onEvent: (event) => {
+          setMessages((prev) =>
+            updateAssistantMessage(prev, (message) => {
+              const progress = [...(message.progress ?? [])];
+
+              switch (event.type) {
+                case "status":
+                  progress.push("Streaming started.");
+                  return { ...message, progress };
+                case "intent_detected": {
+                  const payload = event.payload as { intent?: string; agent?: string };
+                  progress.push(`Routed to ${payload.agent ?? "agent"} for ${payload.intent ?? "intent"}.`);
+                  return { ...message, intent: payload.intent, agent: payload.agent, progress };
+                }
+                case "tool_call_started": {
+                  const payload = event.payload as { tool?: string };
+                  progress.push(`Calling ${payload.tool ?? "tool"}...`);
+                  return { ...message, progress };
+                }
+                case "tool_result_received": {
+                  const payload = event.payload as { tool?: string };
+                  progress.push(`Received data from ${payload.tool ?? "tool"}.`);
+                  return { ...message, progress };
+                }
+                case "draft_answer": {
+                  const payload = event.payload as Partial<ChatResponse>;
+                  progress.push("Draft answer ready.");
+                  return {
+                    ...message,
+                    text: payload.answer ?? message.text,
+                    sources: payload.sources ?? message.sources,
+                    citations: payload.citations ?? message.citations,
+                    confidence: payload.confidence ?? message.confidence,
+                    tool_trace: payload.tool_trace ?? message.tool_trace,
+                    progress,
+                  };
+                }
+                case "verification_started":
+                  progress.push("Verifying evidence.");
+                  return { ...message, progress };
+                case "verification_result": {
+                  const payload = event.payload as { verified?: boolean; confidence?: number };
+                  progress.push(payload.verified ? "Verified." : "Verification lowered confidence.");
+                  return { ...message, verified: payload.verified, confidence: payload.confidence ?? message.confidence, progress };
+                }
+                case "error":
+                  progress.push("Stream error.");
+                  return { ...message, failed: true, ok: false, progress };
+                default:
+                  return message;
+              }
+            }),
+          );
         },
-      ]);
+        onFinal: (payload) => {
+          finalizedRef.current = true;
+          finishWithResponse(payload as ChatResponse);
+        },
+        onError: () => {
+          if (!finalizedRef.current) {
+            closeStreamRef.current?.();
+            closeStreamRef.current = null;
+            void fallback();
+          }
+        },
+      });
     } catch {
-      setMessages((prev) => [
-        ...prev,
-        { role: "assistant", text: "Couldn't reach the server. Check your connection and try again.", failed: true },
-      ]);
-    } finally {
-      setLoading(false);
+      await fallback();
     }
   };
 
@@ -70,8 +210,49 @@ export default function Chat() {
   };
 
   const clearHistory = () => {
+    closeStreamRef.current?.();
     setMessages([]);
     sessionStorage.removeItem(HISTORY_KEY);
+  };
+
+  const renderCitations = (citations?: Citation[]) => {
+    if (!citations?.length) return null;
+
+    return (
+      <details className="mt-3">
+        <summary className="cursor-pointer text-xs text-slate-500 hover:text-slate-300">View evidence</summary>
+        <div className="mt-2 grid gap-2">
+          {citations.map((citation, index) => (
+            <div key={`${citation.tool}-${citation.reference}-${index}`} className="rounded-xl border border-white/[0.06] bg-white/[0.03] p-3 text-xs text-slate-400">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="pill bg-accent-600/10 text-accent-300 ring-accent-600/20">{citation.source}</span>
+                <span className="font-medium text-slate-200">{citationLabel(citation)}</span>
+                {citation.value !== undefined && <span className="text-slate-500">value: {String(citation.value)}</span>}
+              </div>
+              {citation.snippet && <p className="mt-1 text-slate-500">{citation.snippet}</p>}
+            </div>
+          ))}
+        </div>
+      </details>
+    );
+  };
+
+  const renderToolTrace = (toolTrace?: ToolTrace[]) => {
+    if (!toolTrace?.length) return null;
+    return (
+      <details className="mt-2">
+        <summary className="cursor-pointer text-xs text-slate-500 hover:text-slate-300">Tool trace</summary>
+        <div className="mt-2 space-y-1 text-xs text-slate-500">
+          {toolTrace.map((entry, index) => (
+            <div key={`${entry.tool}-${index}`} className="rounded-lg bg-white/[0.03] px-3 py-2">
+              <span className="font-medium text-slate-300">{entry.tool}</span> · {entry.action}
+              {entry.latency_ms !== undefined && <span> · {entry.latency_ms}ms</span>}
+              {entry.status && <span> · {entry.status}</span>}
+            </div>
+          ))}
+        </div>
+      </details>
+    );
   };
 
   return (
@@ -108,7 +289,7 @@ export default function Chat() {
         {messages.map((m, i) => (
           <div key={i} className={m.role === "user" ? "flex justify-end" : "flex flex-col items-start gap-1"}>
             <div
-              className={`inline-block max-w-[80%] rounded-2xl px-4 py-2.5 text-sm ${
+              className={`inline-block max-w-[85%] rounded-2xl px-4 py-2.5 text-sm ${
                 m.role === "user"
                   ? "bg-accent-600 text-white"
                   : m.failed
@@ -118,7 +299,14 @@ export default function Chat() {
                       : "bg-ink-800 text-slate-200"
               }`}
             >
-              <p className="whitespace-pre-line">{m.text}</p>
+              <p className="whitespace-pre-line">{m.text || (m.streaming ? "Thinking..." : "")}</p>
+              {m.progress?.length ? (
+                <ul className="mt-2 space-y-1 text-xs text-slate-500">
+                  {m.progress.slice(-3).map((step, index) => (
+                    <li key={`${step}-${index}`}>• {step}</li>
+                  ))}
+                </ul>
+              ) : null}
               {m.failed && (
                 <button
                   onClick={retry}
@@ -128,9 +316,16 @@ export default function Chat() {
                 </button>
               )}
             </div>
-            {m.role === "assistant" && m.agent && (
+
+            {m.role === "assistant" && (
               <div className="flex flex-wrap items-center gap-1.5 px-1">
-                <AgentBadge agent={m.agent} />
+                {m.agent && <AgentBadge agent={m.agent} />}
+                {typeof m.confidence === "number" && (
+                  <span className={`pill ring-1 ${evidenceBadgeStyle(m.verified, m.ok)}`}>
+                    confidence {m.confidence.toFixed(2)}
+                  </span>
+                )}
+                {typeof m.latency_ms === "number" && <span className="pill bg-white/[0.03] text-slate-500">latency {m.latency_ms}ms</span>}
                 {m.sources?.map((s) => (
                   <span key={s} className="pill bg-white/[0.03] text-slate-500 ring-white/[0.06]">
                     based on: {s}
@@ -138,6 +333,9 @@ export default function Chat() {
                 ))}
               </div>
             )}
+
+            {m.role === "assistant" && renderCitations(m.citations)}
+            {m.role === "assistant" && renderToolTrace(m.tool_trace)}
           </div>
         ))}
         {loading && <TypingIndicator />}

@@ -23,13 +23,13 @@ export default function App() {
   const location = useLocation();
 
   return (
-    <div className="flex h-screen bg-ink-950">
+    <div className="flex min-h-screen flex-col bg-ink-950 lg:h-screen lg:flex-row">
       <Sidebar />
       <div className="flex flex-1 flex-col overflow-hidden">
-        <header className="flex h-14 shrink-0 items-center border-b border-white/[0.06] px-8">
+        <header className="flex h-14 shrink-0 items-center border-b border-white/[0.06] px-4 lg:px-8">
           <h1 className="text-sm font-medium text-slate-300">{pageTitle(location.pathname)}</h1>
         </header>
-        <main className="flex-1 overflow-y-auto p-8">
+        <main className="flex-1 overflow-y-auto p-4 lg:p-8">
           <div className="mx-auto max-w-5xl">
             <Routes>
               <Route path="/" element={<Dashboard />} />

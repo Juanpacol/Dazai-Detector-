@@ -16,3 +16,7 @@ def _get_retriever() -> AlertRetriever:
 
 def search_similar(query: str, k: int = 5, tier_filter: str | None = None) -> list[dict]:
     return _get_retriever().search(query, k=k, tier_filter=tier_filter)
+
+
+def search_similar_cases(query: str, k: int = 5, tier_filter: str | None = None) -> list[dict]:
+    return search_similar(query, k=k, tier_filter=tier_filter)

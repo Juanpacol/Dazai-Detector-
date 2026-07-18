@@ -6,6 +6,7 @@ from backend.repositories.alert_repository import AlertRepository
 from backend.repositories.narrative_repository import NarrativeRepository
 from backend.services.narrative_service import NarrativeService
 from intelligence.pipeline import config
+from mcp_server.tools import alert_tools
 
 
 def _signal_breakdown(alert: dict) -> dict:
@@ -40,13 +41,20 @@ class AlertService:
         return {"items": items, "total": total, "limit": limit, "offset": offset}
 
     def get_detail(self, alert_id: str) -> dict | None:
-        alert = self._repository.get(alert_id)
-        if alert is None:
+        context = alert_tools.get_alert_context(alert_id)
+        if context is None:
             return None
 
-        narrative = self._narrative_repository.get(alert_id)
-        if narrative is None:
+        alert = context["alert"]
+        narrative = context.get("narrative") or self._narrative_repository.get(alert_id)
+        if not narrative:
             narrative = self._narrative_service.narrate(alert)
             self._narrative_repository.set(alert_id, narrative)
 
-        return {**alert, "narrative": narrative, "signal_breakdown": _signal_breakdown(alert)}
+        return {
+            **alert,
+            "narrative": narrative,
+            "signal_breakdown": _signal_breakdown(alert),
+            "citations": context.get("citations", []),
+            "provenance": context.get("provenance", {}),
+        }

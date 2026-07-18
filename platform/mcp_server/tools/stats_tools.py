@@ -8,6 +8,7 @@ from collections import Counter
 from datetime import datetime
 
 from mcp_server.tools import alert_tools
+from mcp_server.tools.evidence import citation
 
 
 def tier_distribution() -> dict[str, int]:
@@ -48,4 +49,17 @@ def summary() -> dict:
         "total_alerts": len(alerts),
         "total_flagged_amount": round(total_amount, 2),
         "tier_distribution": tier_distribution(),
+    }
+
+
+def dashboard_summary() -> dict:
+    base = summary()
+    return {
+        **base,
+        "by_hour": alerts_by_hour(),
+        "by_amount_bucket": alerts_by_amount_bucket(),
+        "citations": [
+            citation(source="stats", tool="stats_tools.summary", reference="dashboard", field="total_alerts", value=base["total_alerts"]),
+            citation(source="stats", tool="stats_tools.summary", reference="dashboard", field="total_flagged_amount", value=base["total_flagged_amount"]),
+        ],
     }

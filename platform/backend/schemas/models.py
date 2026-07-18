@@ -34,11 +34,31 @@ class SignalBreakdown(BaseModel):
     risk_score: float
 
 
+class Citation(BaseModel):
+    source: str
+    tool: str
+    reference: str
+    field: str | None = None
+    value: str | float | int | bool | None = None
+    timestamp: str | None = None
+    snippet: str | None = None
+
+
+class ToolTrace(BaseModel):
+    tool: str
+    action: str
+    details: dict[str, str | int | float | bool] = Field(default_factory=dict)
+    status: str = "ok"
+    latency_ms: int | None = None
+
+
 class AlertDetail(Alert):
     features: dict[str, float]
     shap_explanation: list[ShapFeature]
     narrative: str
     signal_breakdown: SignalBreakdown
+    citations: list[Citation] = Field(default_factory=list)
+    provenance: dict[str, str] = Field(default_factory=dict)
 
 
 class AlertPage(BaseModel):
@@ -81,4 +101,9 @@ class ChatResponse(BaseModel):
     intent: str
     agent: str
     sources: list[str]
+    citations: list[Citation] = Field(default_factory=list)
+    confidence: float = 0.0
+    tool_trace: list[ToolTrace] = Field(default_factory=list)
+    latency_ms: int = 0
+    verified: bool = False
     ok: bool = True

@@ -1,136 +1,48 @@
-# Dazai Detector — Hybrid Credit Card Fraud Detection
+# Dazai Detector
 
-Hybrid fraud detection: unsupervised anomaly detection (DBSCAN) fused with a supervised classifier
-(XGBoost) into one risk score, explained per-transaction with SHAP, narrated in plain language,
-summarized into automatic high-risk reports, and queryable through a grounded investigation chat
-routed across specialist agents backed by a ChromaDB RAG store.
+Explainable credit card fraud detection platform.
 
-See `CONTEXT.md` for the living project summary and `docs/architecture.md` for diagrams and design
-patterns. Implementation is organized as numbered specs in `docs/specs/00-overview.md` onward. For a
-free public deploy (Hugging Face Spaces + Cloudflare Pages), see `docs/deployment.md`.
+## What it is
 
-## Project layout
+Dazai Detector combines anomaly detection and supervised ML to score fraud risk, explain each alert, generate reports, and support grounded investigation chat.
 
-```
-data/           raw / processed / output datasets and generated artifacts
-intelligence/   notebooks + the production ML pipeline package
-docs/           architecture doc + SDD specs (implementation order)
-platform/       backend (FastAPI), mcp_server (FastMCP multi-agent server), rag (ChromaDB), frontend (React)
-docker/         Dockerfile for the pipeline/backend/mcp_server image (frontend has its own)
-```
+## What recruiters should see
 
-## Quickstart with Docker (recommended)
+- Hybrid detection: DBSCAN + XGBoost
+- Explainability: SHAP-based alert breakdowns
+- Investigation layer: agent-routed chat with real tool-backed sources
+- Reporting: automatic high-risk summaries
+- Deployment-ready: Docker Compose, Hugging Face Spaces, and Cloudflare Pages
 
-One command builds the dataset, trains the hybrid model, generates the first report, ingests the RAG
-store, and starts the backend, MCP server, and frontend:
+## Demo flow
+
+1. Open the dashboard to see risk KPIs and fraud patterns
+2. Browse alerts and inspect a single alert
+3. Review the narrative, signal breakdown, and SHAP explanation
+4. Use chat to ask why an alert was flagged or to summarize patterns
+5. Open reports to see the generated fraud summary
+
+## Run locally
 
 ```bash
 docker compose up --build
 ```
 
 - Frontend: http://localhost:5173
-- Backend: http://localhost:8000 (docs at `/docs`)
-- MCP server (HTTP transport): http://localhost:8001/mcp
+- Backend: http://localhost:8000
+- MCP server: http://localhost:8001/mcp
 
-The `pipeline` service runs once (dataset → model → report → RAG ingest) and exits; `backend`,
-`mcp_server`, and `frontend` start once it succeeds. Everything the pipeline writes lands on the
-bind-mounted `./data` and `./intelligence/pipeline/artifacts`, so it survives `docker compose down`
-and `docker compose up` re-runs the pipeline against the same data unless you delete those folders.
+## Deploy
 
-If a default port is already taken on your machine, override it:
+- Backend: Hugging Face Spaces using `deploy/huggingface-space/Dockerfile`
+- Frontend: Cloudflare Pages using `platform/frontend`
 
-```bash
-BACKEND_PORT=8020 MCP_HOST_PORT=8021 FRONTEND_PORT=5190 VITE_API_URL=http://localhost:8020 \
-  docker compose up --build
-```
+See `docs/deployment.md` for the full deployment guide.
 
-To use a real LLM for narratives instead of the offline template, export `LLM_PROVIDER`,
-`LLM_API_KEY`, `LLM_MODEL` before `docker compose up` (see `.env.example`).
+## Repo
 
-To re-run just the pipeline after changing data (e.g. dropping in the real Kaggle CSV):
+https://github.com/Juanpacol/Dazai-Detector-
 
-```bash
-docker compose run --rm pipeline
-docker compose restart backend mcp_server
-```
+## Built with Codex + GPT-5.6
 
-## Quickstart without Docker
-
-### 1. Python environment
-
-Requires Python 3.10+ (uses PEP 604 union syntax `X | None`).
-
-```bash
-python3.11 -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-```
-
-### 2. Data
-
-Drop the Kaggle "Credit Card Fraud Detection" dataset at `data/raw/creditcard.csv` if you have it.
-If you don't, skip this — the sampler generates a synthetic dataset with the same schema so everything
-below still works offline.
-
-```bash
-python intelligence/pipeline/make_sample.py
-```
-
-### 3. Run the ML pipeline (hybrid model + SHAP)
-
-```bash
-python intelligence/pipeline/run_pipeline.py
-```
-
-Produces `data/outputs/alerts.json`.
-
-### 4. Generate a report
-
-```bash
-python platform/backend/services/report_service.py
-```
-
-Produces `data/outputs/reports/report_<timestamp>.{json,md}`.
-
-### 5. Ingest alerts into the RAG store
-
-```bash
-python platform/rag/ingest.py
-```
-
-### 6. Start the backend
-
-```bash
-python platform/backend/main.py
-```
-
-### 7. Start the MCP server (optional, for external MCP clients)
-
-```bash
-python platform/mcp_server/server.py
-```
-
-### 8. Start the frontend
-
-```bash
-cd platform/frontend
-npm install
-npm run dev
-```
-
-Open the printed local URL. Set `VITE_API_URL=http://localhost:8000` in `platform/frontend/.env` if
-you changed the backend port.
-
-## LLM narrative (optional)
-
-By default, alert narratives are generated by a deterministic template (no external calls, works
-offline). To use a real LLM for richer narratives, set in `.env` (see `.env.example`):
-
-```
-LLM_PROVIDER=openai
-LLM_API_KEY=sk-...
-LLM_MODEL=gpt-4o-mini
-```
-
-No code change is required — the narrative service falls back to the template automatically if the
-call fails or no key is set.
+Codex was used to inspect, review, and update the codebase. GPT-5.6 was used to help refine the project structure, tighten the README, and keep the presentation clear and concise.

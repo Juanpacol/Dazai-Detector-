@@ -10,17 +10,23 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
+from typing import Callable
 
 
 @dataclass
 class AgentResponse:
     answer: str
     sources: list[str] = field(default_factory=list)
+    citations: list[dict] = field(default_factory=list)
+    tool_trace: list[dict] = field(default_factory=list)
+    confidence: float = 0.0
+    verified: bool = False
+    ok: bool = True
 
 
 class Agent(ABC):
     name: str
 
     @abstractmethod
-    def respond(self, question: str) -> AgentResponse:
+    def respond(self, question: str, emit: Callable[[str, dict], None] | None = None) -> AgentResponse:
         ...

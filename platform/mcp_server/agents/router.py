@@ -10,11 +10,14 @@ never hallucinate.
 from __future__ import annotations
 
 import re
+import time
+from typing import Callable
 
 from mcp_server.agents.analyst import AnalystAgent
 from mcp_server.agents.base import AgentResponse
 from mcp_server.agents.investigator import InvestigatorAgent
 from mcp_server.agents.reporter import ReporterAgent
+from mcp_server.agents.verifier import VerifierAgent
 
 INTENTS = ("alert_lookup", "similar_cases", "pattern_analysis", "report_request")
 
@@ -57,14 +60,52 @@ class IntentRouter:
             "pattern_analysis": AnalystAgent(),
             "report_request": ReporterAgent(),
         }
+        self._verifier = VerifierAgent()
 
-    def dispatch(self, question: str) -> dict:
+    def dispatch(self, question: str, emit: Callable[[str, dict], None] | None = None) -> dict:
+        started = time.perf_counter()
         intent = classify(question)
         agent = self._agents[intent]
-        response: AgentResponse = agent.respond(question)
+        if emit:
+            emit("intent_detected", {"intent": intent, "agent": agent.name})
+        response: AgentResponse = agent.respond(question, emit=emit)
+        if emit:
+            emit(
+                "draft_answer",
+                {
+                    "intent": intent,
+                    "agent": agent.name,
+                    "answer": response.answer,
+                    "sources": response.sources,
+                    "citations": response.citations,
+                    "confidence": response.confidence,
+                    "tool_trace": response.tool_trace,
+                },
+            )
+            emit("verification_started", {"intent": intent, "agent": agent.name})
+        verification = self._verifier.review(question, intent, response)
+        response.verified = verification.verified
+        response.confidence = verification.confidence
+        response.ok = response.ok and verification.ok
+        if emit:
+            emit(
+                "verification_result",
+                {
+                    "verified": verification.verified,
+                    "confidence": verification.confidence,
+                    "notes": verification.notes,
+                },
+            )
+        latency_ms = int((time.perf_counter() - started) * 1000)
         return {
             "intent": intent,
             "agent": agent.name,
             "answer": response.answer,
             "sources": response.sources,
+            "citations": response.citations,
+            "confidence": response.confidence,
+            "tool_trace": response.tool_trace,
+            "latency_ms": latency_ms,
+            "verified": response.verified,
+            "ok": response.ok,
         }

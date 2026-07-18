@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import json
 import os
+import tempfile
 
 from intelligence.pipeline import config
 
@@ -34,7 +35,9 @@ class NarrativeRepository:
         narratives = self._read_all()
         narratives[alert_id] = narrative
 
-        tmp_path = config.NARRATIVES_PATH.with_suffix(".tmp")
-        with open(tmp_path, "w") as f:
+        # Use a unique temp file per write so concurrent requests never
+        # contend on the same intermediate path.
+        with tempfile.NamedTemporaryFile("w", delete=False, dir=config.NARRATIVES_PATH.parent) as f:
             json.dump(narratives, f, indent=2)
+            tmp_path = f.name
         os.replace(tmp_path, config.NARRATIVES_PATH)
