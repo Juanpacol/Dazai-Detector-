@@ -32,6 +32,33 @@ docker compose up --build
 - Backend: http://localhost:8000
 - MCP server: http://localhost:8001/mcp
 
+## Evaluation harness
+
+Run the offline quality harness before demoing:
+
+```bash
+python platform/backend/services/eval_service.py
+```
+
+It writes a plain-text JSON + Markdown report under `data/outputs/evaluations/`.
+If you have Ollama running locally, you can enable optional qualitative grading with:
+
+```bash
+OLLAMA_EVAL_URL=http://localhost:11434 OLLAMA_EVAL_MODEL=llama3.1 python platform/backend/services/eval_service.py
+```
+
+## Tests
+
+Run the backend tests with:
+
+```bash
+PYTHONPATH=.:platform python3.11 -m unittest discover -s platform/backend/tests -t platform
+```
+
+## Documentation
+
+All project documentation is kept in plain text Markdown files under `docs/` and `README.md` so recruiters can scan the architecture, deployment, and evaluation flow quickly.
+
 ## Deploy
 
 - Backend: Hugging Face Spaces using `deploy/huggingface-space/Dockerfile`

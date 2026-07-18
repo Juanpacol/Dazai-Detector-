@@ -23,6 +23,7 @@ CLASSIFIER_PATH = ARTIFACTS_DIR / "classifier.joblib"
 OUTPUTS_DIR = PROJECT_ROOT / "data" / "outputs"
 ALERTS_PATH = OUTPUTS_DIR / "alerts.json"
 REPORTS_DIR = OUTPUTS_DIR / "reports"
+EVALUATIONS_DIR = OUTPUTS_DIR / "evaluations"
 NARRATIVES_PATH = OUTPUTS_DIR / "narratives.json"
 
 CHROMA_DIR = Path(os.getenv("CHROMA_DIR", str(OUTPUTS_DIR / "chroma")))

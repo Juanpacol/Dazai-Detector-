@@ -1,0 +1,74 @@
+[
+  {
+    "id": "alert_lookup_primary",
+    "question": "Why was TXN-014346 flagged?",
+    "expected_intent": "alert_lookup",
+    "required_phrases": ["TXN-014346", "risk score", "tier"],
+    "min_sources": 1,
+    "min_citations": 2,
+    "min_confidence": 0.75,
+    "max_latency_ms": 3000,
+    "expected_ok": true,
+    "expected_verified": true
+  },
+  {
+    "id": "similar_cases_primary",
+    "question": "Find cases similar to TXN-014346",
+    "expected_intent": "similar_cases",
+    "required_phrases": ["similar case"],
+    "min_sources": 1,
+    "min_citations": 1,
+    "min_confidence": 0.5,
+    "max_latency_ms": 3000,
+    "expected_ok": true,
+    "expected_verified": true
+  },
+  {
+    "id": "pattern_analysis_hours",
+    "question": "What time patterns exist in flagged transactions?",
+    "expected_intent": "pattern_analysis",
+    "required_phrases": ["hour", "alerts"],
+    "min_sources": 2,
+    "min_citations": 2,
+    "min_confidence": 0.75,
+    "max_latency_ms": 3000,
+    "expected_ok": true,
+    "expected_verified": true
+  },
+  {
+    "id": "pattern_analysis_amount",
+    "question": "What amount buckets are most common?",
+    "expected_intent": "pattern_analysis",
+    "required_phrases": ["amount", "alerts"],
+    "min_sources": 2,
+    "min_citations": 2,
+    "min_confidence": 0.75,
+    "max_latency_ms": 3000,
+    "expected_ok": true,
+    "expected_verified": true
+  },
+  {
+    "id": "report_request_summary",
+    "question": "Give me a summary of high-risk activity",
+    "expected_intent": "report_request",
+    "required_phrases": ["total alerts", "tier"],
+    "min_sources": 2,
+    "min_citations": 3,
+    "min_confidence": 0.75,
+    "max_latency_ms": 3000,
+    "expected_ok": true,
+    "expected_verified": true
+  },
+  {
+    "id": "alert_lookup_missing",
+    "question": "Why was TXN-999999 flagged?",
+    "expected_intent": "alert_lookup",
+    "any_phrases": ["couldn't find", "no alert"],
+    "min_sources": 1,
+    "min_citations": 1,
+    "min_confidence": 0.25,
+    "max_latency_ms": 3000,
+    "expected_ok": false,
+    "expected_verified": false
+  }
+]
