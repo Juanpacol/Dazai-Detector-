@@ -7,6 +7,7 @@ from __future__ import annotations
 from collections import Counter
 from datetime import datetime
 
+from intelligence.pipeline import config
 from mcp_server.tools import alert_tools
 from mcp_server.tools.evidence import citation
 
@@ -25,17 +26,20 @@ def alerts_by_hour() -> dict[str, int]:
     return dict(sorted(counts.items()))
 
 
+def alerts_by_day() -> dict[str, dict[str, int]]:
+    """Tier counts per day, keyed by ISO date, for trend charts."""
+    by_day: dict[str, Counter[str]] = {}
+    for a in alert_tools.all_alerts():
+        day = a["timestamp"][:10]
+        by_day.setdefault(day, Counter())[a["risk_tier"]] += 1
+    return {day: dict(counts) for day, counts in sorted(by_day.items())}
+
+
 def alerts_by_amount_bucket() -> dict[str, int]:
-    buckets = [
-        (0, 50, "$0-50"),
-        (50, 200, "$50-200"),
-        (200, 1000, "$200-1000"),
-        (1000, float("inf"), "$1000+"),
-    ]
-    counts = {label: 0 for *_range, label in buckets}
+    counts = {label: 0 for *_range, label in config.AMOUNT_BUCKETS}
     for a in alert_tools.all_alerts():
         amount = a["amount"]
-        for low, high, label in buckets:
+        for low, high, label in config.AMOUNT_BUCKETS:
             if low <= amount < high:
                 counts[label] += 1
                 break

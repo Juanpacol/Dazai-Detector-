@@ -280,6 +280,14 @@ export default function Chat() {
         )}
       </div>
 
+      {messages.length > 0 && (
+        <p className="text-xs text-slate-600">
+          <strong className="text-slate-500">Confidence</strong> reflects the assistant's certainty in its answer ·{" "}
+          <strong className="text-slate-500">Verified</strong> means the answer was checked against retrieved evidence
+          before being shown.
+        </p>
+      )}
+
       <div className="flex-1 space-y-3 overflow-y-auto rounded-2xl border border-white/[0.06] bg-ink-900 p-4">
         {messages.length === 0 && (
           <p className="text-sm text-slate-500">

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from backend.repositories.alert_repository import AlertRepository
+from backend.repositories.case_repository import CaseRepository
 from backend.repositories.narrative_repository import NarrativeRepository
 from backend.services.narrative_service import NarrativeService
 from intelligence.pipeline import config
@@ -30,15 +31,80 @@ def _signal_breakdown(alert: dict) -> dict:
 class AlertService:
     def __init__(self):
         self._repository = AlertRepository()
+        self._case_repository = CaseRepository()
         self._narrative_repository = NarrativeRepository()
         self._narrative_service = NarrativeService()
 
-    def list(self, tier: str | None = None, limit: int | None = None) -> list[dict]:
-        return self._repository.list(tier=tier, limit=limit)
+    def _with_case_state(self, alert: dict) -> dict:
+        case = self._case_repository.get(alert["id"])
+        return {
+            **alert,
+            "status": case["status"],
+            "verdict": case["verdict"],
+            "assignee": case["assignee"],
+        }
 
-    def page(self, tier: str | None, min_score: float | None, offset: int, limit: int) -> dict:
-        items, total = self._repository.page(tier=tier, min_score=min_score, offset=offset, limit=limit)
-        return {"items": items, "total": total, "limit": limit, "offset": offset}
+    def exists(self, alert_id: str) -> bool:
+        return self._repository.get(alert_id) is not None
+
+    def list(self, tier: str | None = None, limit: int | None = None) -> list[dict]:
+        return [self._with_case_state(a) for a in self._repository.list(tier=tier, limit=limit)]
+
+    def page(
+        self,
+        tier: str | None,
+        min_score: float | None,
+        offset: int,
+        limit: int,
+        date_from: str | None = None,
+        date_to: str | None = None,
+        amount_min: float | None = None,
+        amount_max: float | None = None,
+        search: str | None = None,
+        sort_by: str = "risk_score",
+        sort_dir: str = "desc",
+    ) -> dict:
+        items, total = self._repository.page(
+            tier=tier,
+            min_score=min_score,
+            offset=offset,
+            limit=limit,
+            date_from=date_from,
+            date_to=date_to,
+            amount_min=amount_min,
+            amount_max=amount_max,
+            search=search,
+            sort_by=sort_by,
+            sort_dir=sort_dir,
+        )
+        return {"items": [self._with_case_state(a) for a in items], "total": total, "limit": limit, "offset": offset}
+
+    def all_filtered(
+        self,
+        tier: str | None,
+        min_score: float | None,
+        date_from: str | None,
+        date_to: str | None,
+        amount_min: float | None,
+        amount_max: float | None,
+        search: str | None,
+        sort_by: str,
+        sort_dir: str,
+    ) -> list[dict]:
+        items, _ = self._repository.page(
+            tier=tier,
+            min_score=min_score,
+            offset=0,
+            limit=10_000_000,
+            date_from=date_from,
+            date_to=date_to,
+            amount_min=amount_min,
+            amount_max=amount_max,
+            search=search,
+            sort_by=sort_by,
+            sort_dir=sort_dir,
+        )
+        return [self._with_case_state(a) for a in items]
 
     def get_detail(self, alert_id: str) -> dict | None:
         context = alert_tools.get_alert_context(alert_id)
@@ -51,8 +117,13 @@ class AlertService:
             narrative = self._narrative_service.narrate(alert)
             self._narrative_repository.set(alert_id, narrative)
 
+        case = self._case_repository.get(alert_id)
         return {
             **alert,
+            "status": case["status"],
+            "verdict": case["verdict"],
+            "assignee": case["assignee"],
+            "notes": case["notes"],
             "narrative": narrative,
             "signal_breakdown": _signal_breakdown(alert),
             "citations": context.get("citations", []),

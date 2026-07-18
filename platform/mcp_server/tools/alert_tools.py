@@ -40,13 +40,36 @@ def _load_narratives() -> dict[str, str]:
     return {}
 
 
-def _filtered(tier: str | None, min_score: float | None) -> list[dict]:
+def _filtered(
+    tier: str | None,
+    min_score: float | None,
+    date_from: str | None = None,
+    date_to: str | None = None,
+    amount_min: float | None = None,
+    amount_max: float | None = None,
+    search: str | None = None,
+    sort_by: str = "risk_score",
+    sort_dir: str = "desc",
+) -> list[dict]:
     alerts = _load()
     if tier:
         alerts = [a for a in alerts if a["risk_tier"] == tier.upper()]
     if min_score is not None:
         alerts = [a for a in alerts if a["risk_score"] >= min_score]
-    return sorted(alerts, key=lambda a: a["risk_score"], reverse=True)
+    if date_from:
+        alerts = [a for a in alerts if a["timestamp"] >= date_from]
+    if date_to:
+        alerts = [a for a in alerts if a["timestamp"] <= date_to]
+    if amount_min is not None:
+        alerts = [a for a in alerts if a["amount"] >= amount_min]
+    if amount_max is not None:
+        alerts = [a for a in alerts if a["amount"] <= amount_max]
+    if search:
+        needle = search.lower()
+        alerts = [a for a in alerts if needle in a["id"].lower()]
+
+    reverse = sort_dir == "desc"
+    return sorted(alerts, key=lambda a: a[sort_by], reverse=reverse)
 
 
 def list_alerts(tier: str | None = None, limit: int | None = 20) -> list[dict]:
@@ -55,9 +78,29 @@ def list_alerts(tier: str | None = None, limit: int | None = 20) -> list[dict]:
 
 
 def page_alerts(
-    tier: str | None, min_score: float | None, offset: int, limit: int
+    tier: str | None,
+    min_score: float | None,
+    offset: int,
+    limit: int,
+    date_from: str | None = None,
+    date_to: str | None = None,
+    amount_min: float | None = None,
+    amount_max: float | None = None,
+    search: str | None = None,
+    sort_by: str = "risk_score",
+    sort_dir: str = "desc",
 ) -> tuple[list[dict], int]:
-    alerts = _filtered(tier, min_score)
+    alerts = _filtered(
+        tier,
+        min_score,
+        date_from=date_from,
+        date_to=date_to,
+        amount_min=amount_min,
+        amount_max=amount_max,
+        search=search,
+        sort_by=sort_by,
+        sort_dir=sort_dir,
+    )
     return alerts[offset : offset + limit], len(alerts)
 
 

@@ -1,3 +1,4 @@
+import { TrendingDown, TrendingUp } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
 export function StatCard({
@@ -5,11 +6,13 @@ export function StatCard({
   value,
   icon: Icon,
   tone = "default",
+  deltaPct,
 }: {
   label: string;
   value: string | number;
   icon: LucideIcon;
   tone?: "default" | "critical";
+  deltaPct?: number | null;
 }) {
   return (
     <div className="card flex items-center gap-4 p-4">
@@ -22,7 +25,19 @@ export function StatCard({
       </div>
       <div>
         <p className="text-xs text-slate-500">{label}</p>
-        <p className="mt-0.5 text-xl font-semibold text-white">{value}</p>
+        <div className="flex items-center gap-2">
+          <p className="mt-0.5 text-xl font-semibold text-white">{value}</p>
+          {deltaPct != null && (
+            <span
+              className={`flex items-center gap-0.5 text-xs font-medium ${
+                deltaPct > 0 ? "text-tier-critical" : deltaPct < 0 ? "text-emerald-400" : "text-slate-500"
+              }`}
+            >
+              {deltaPct > 0 ? <TrendingUp size={12} /> : deltaPct < 0 ? <TrendingDown size={12} /> : null}
+              {Math.abs(deltaPct).toFixed(1)}%
+            </span>
+          )}
+        </div>
       </div>
     </div>
   );

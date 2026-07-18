@@ -25,6 +25,9 @@ ALERTS_PATH = OUTPUTS_DIR / "alerts.json"
 REPORTS_DIR = OUTPUTS_DIR / "reports"
 EVALUATIONS_DIR = OUTPUTS_DIR / "evaluations"
 NARRATIVES_PATH = OUTPUTS_DIR / "narratives.json"
+MODEL_METRICS_PATH = OUTPUTS_DIR / "model_metrics.json"
+CASE_STATE_PATH = OUTPUTS_DIR / "case_state.json"
+AUDIT_LOG_PATH = OUTPUTS_DIR / "audit_log.jsonl"
 
 CHROMA_DIR = Path(os.getenv("CHROMA_DIR", str(OUTPUTS_DIR / "chroma")))
 CHROMA_COLLECTION_NAME = "alerts"
@@ -45,8 +48,11 @@ TEST_SIZE = 0.3
 
 # --- Hybrid model --------------------------------------------------------------
 
-DBSCAN_EPS = 1.5
 DBSCAN_MIN_SAMPLES = 5
+# 95th percentile of k-distances: empirically flags ~2% of rows as noise on this
+# dataset, enriched ~35x for real fraud vs the base rate — a lower percentile
+# (e.g. 10th) flags 70%+ of rows and carries almost no signal.
+DBSCAN_EPS_PERCENTILE = 95
 
 CLASSIFIER_WEIGHT = 0.7
 DBSCAN_WEIGHT = 0.3
@@ -75,6 +81,25 @@ BACKEND_CORS_ORIGINS = os.getenv("BACKEND_CORS_ORIGINS", "http://localhost:5173"
 
 ALERTS_DEFAULT_LIMIT = 25
 ALERTS_MAX_LIMIT = 100
+
+# --- Model quality metrics ---------------------------------------------------
+
+AMOUNT_BUCKETS = [
+    (0, 50, "$0-50"),
+    (50, 200, "$50-200"),
+    (200, 1000, "$200-1000"),
+    (1000, float("inf"), "$1000+"),
+]
+
+THRESHOLD_SWEEP_STEPS = 20
+CALIBRATION_BINS = 10
+
+# --- Case workflow -----------------------------------------------------------
+
+CASE_STATUSES = ["open", "investigating", "resolved"]
+CASE_VERDICTS = ["unreviewed", "confirmed_fraud", "false_positive"]
+DEFAULT_CASE_STATUS = "open"
+DEFAULT_CASE_VERDICT = "unreviewed"
 
 
 def risk_tier_for(score: float) -> str:

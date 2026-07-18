@@ -3,27 +3,42 @@ import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 
 import { api } from "../api/client";
+import { CaseWorkflowCard } from "../components/CaseWorkflowCard";
+import { ErrorState } from "../components/ErrorState";
 import { RiskScoreBar } from "../components/RiskScoreBar";
 import { ShapBarChart } from "../components/ShapBarChart";
 import { SignalBreakdown } from "../components/SignalBreakdown";
+import { CardSkeleton } from "../components/Skeleton";
 import { TierBadge } from "../components/TierBadge";
-import type { AlertDetail as AlertDetailType } from "../types";
+import type { AlertDetail as AlertDetailType, StatsSummary, TierCalibration } from "../types";
 
 export default function AlertDetail() {
   const { id } = useParams<{ id: string }>();
   const [alert, setAlert] = useState<AlertDetailType | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [tierCalibration, setTierCalibration] = useState<TierCalibration | null>(null);
 
-  useEffect(() => {
+  const load = () => {
     if (!id) return;
+    setError(null);
     api
       .get<AlertDetailType>(`/alerts/${id}`)
       .then(setAlert)
       .catch((e) => setError(e.message));
-  }, [id]);
+  };
 
-  if (error) return <p className="text-red-400">Failed to load alert: {error}</p>;
-  if (!alert) return <p className="text-slate-500">Loading...</p>;
+  useEffect(load, [id]);
+
+  useEffect(() => {
+    if (!alert) return;
+    api
+      .get<StatsSummary>("/stats")
+      .then((stats) => setTierCalibration(stats.calibration_by_tier[alert.risk_tier] ?? null))
+      .catch(() => setTierCalibration(null));
+  }, [alert?.risk_tier]);
+
+  if (error) return <ErrorState message={`Failed to load alert: ${error}`} onRetry={load} />;
+  if (!alert) return <CardSkeleton lines={5} />;
 
   return (
     <div className="space-y-6">
@@ -46,6 +61,16 @@ export default function AlertDetail() {
           <div>
             <p className="text-slate-500">Risk Score</p>
             <RiskScoreBar score={alert.risk_score} />
+            {tierCalibration && tierCalibration.reviewed > 0 ? (
+              <p className="mt-1 text-xs text-slate-500">
+                {alert.risk_tier} alerts have been confirmed fraud in {tierCalibration.observed_precision?.toFixed(0)}%
+                of {tierCalibration.reviewed} reviewed cases.
+              </p>
+            ) : (
+              <p className="mt-1 text-xs text-slate-600">
+                No {alert.risk_tier.toLowerCase()}-tier alerts reviewed yet to confirm real-world accuracy.
+              </p>
+            )}
           </div>
           <div>
             <p className="text-slate-500">DBSCAN / Classifier</p>
@@ -70,6 +95,11 @@ export default function AlertDetail() {
           </div>
         )}
       </div>
+
+      <CaseWorkflowCard
+        alert={alert}
+        onUpdate={(patch) => setAlert((prev) => (prev ? { ...prev, ...patch } : prev))}
+      />
 
       <div className="card p-6">
         <h2 className="mb-4 text-sm font-medium text-slate-300">How the risk score was composed</h2>

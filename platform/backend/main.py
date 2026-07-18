@@ -15,7 +15,7 @@ for _p in (_PROJECT_ROOT, _PLATFORM_DIR):
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from backend.api.routes import alerts, chat, reports, stats
+from backend.api.routes import alerts, audit, chat, evaluations, model, reports, stats
 from intelligence.pipeline import config
 
 app = FastAPI(title="Dazai Detector API", version="1.0.0")
@@ -31,6 +31,9 @@ app.include_router(alerts.router, prefix="/api")
 app.include_router(stats.router, prefix="/api")
 app.include_router(reports.router, prefix="/api")
 app.include_router(chat.router, prefix="/api")
+app.include_router(model.router, prefix="/api")
+app.include_router(evaluations.router, prefix="/api")
+app.include_router(audit.router, prefix="/api")
 
 
 @app.get("/")

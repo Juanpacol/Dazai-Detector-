@@ -1,6 +1,6 @@
 // Single fetch wrapper — every page goes through here, never `fetch` directly.
 
-const BASE_URL = import.meta.env.VITE_API_URL ?? "http://localhost:8000";
+export const BASE_URL = import.meta.env.VITE_API_URL ?? "http://localhost:8000";
 
 export interface ChatStreamEvent {
   type: string;
@@ -32,6 +32,8 @@ export const api = {
   getText: async (path: string) => (await request(path)).text(),
   post: async <T>(path: string, body: unknown) =>
     (await request(path, { method: "POST", body: JSON.stringify(body) })).json() as Promise<T>,
+  patch: async <T>(path: string, body: unknown) =>
+    (await request(path, { method: "PATCH", body: JSON.stringify(body) })).json() as Promise<T>,
   streamChat: (question: string, handlers: StreamChatHandlers) => {
     const url = new URL(`${BASE_URL}/api/chat/stream`);
     url.searchParams.set("question", question);

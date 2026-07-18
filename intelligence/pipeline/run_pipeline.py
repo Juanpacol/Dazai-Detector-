@@ -13,9 +13,8 @@ if str(_PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(_PROJECT_ROOT))
 
 import joblib
-from sklearn.metrics import average_precision_score, precision_score, recall_score
 
-from intelligence.pipeline import config
+from intelligence.pipeline import config, drift, metrics
 from intelligence.pipeline.explainer import ShapExplainer
 from intelligence.pipeline.hybrid import HybridFraudDetector
 from intelligence.pipeline.preprocessing import Preprocessor
@@ -38,6 +37,7 @@ def _build_alert(row, explanation: list[dict]) -> dict:
         "classifier_score": round(float(row["classifier_score"]), 4),
         "features": {col: float(row[col]) for col in config.FEATURE_COLUMNS},
         "shap_explanation": explanation,
+        "label": int(row[config.LABEL_COLUMN]) if config.LABEL_COLUMN in row else None,
     }
 
 
@@ -54,13 +54,24 @@ def main() -> None:
 
     scored_df = model.score(score_df)
 
-    if config.LABEL_COLUMN in scored_df.columns:
-        y_true = scored_df[config.LABEL_COLUMN]
-        y_pred = (scored_df["risk_score"] >= config.ALERT_THRESHOLD).astype(int)
-        pr_auc = average_precision_score(y_true, scored_df["risk_score"])
-        precision = precision_score(y_true, y_pred, zero_division=0)
-        recall = recall_score(y_true, y_pred, zero_division=0)
-        print(f"PR-AUC: {pr_auc:.4f} | Precision@{config.ALERT_THRESHOLD}: {precision:.4f} | Recall: {recall:.4f}")
+    model_metrics = metrics.compute(
+        scored_df,
+        meta={
+            "train_rows": len(train_df),
+            "score_rows": len(score_df),
+            "classifier_artifact": config.CLASSIFIER_PATH.name,
+        },
+    )
+    if model_metrics is not None:
+        model_metrics["drift"] = drift.compute(train_df, score_df)
+        metrics.write(model_metrics)
+        print(
+            f"PR-AUC: {model_metrics['pr_auc']:.4f} | "
+            f"Precision@{config.ALERT_THRESHOLD}: {model_metrics['precision']:.4f} | "
+            f"Recall: {model_metrics['recall']:.4f}"
+        )
+        print(f"Drift status: {model_metrics['drift']['status']} (max PSI {model_metrics['drift']['max_psi']:.4f})")
+        print(f"Wrote model metrics to {config.MODEL_METRICS_PATH}")
 
     alerted_df = scored_df[scored_df["risk_score"] >= config.ALERT_THRESHOLD].copy()
     print(f"Alerts above threshold {config.ALERT_THRESHOLD}: {len(alerted_df)}")

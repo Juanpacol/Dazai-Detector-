@@ -10,11 +10,13 @@ export function RiskScoreBar({ score }: { score: number }) {
           : "bg-tier-low";
 
   return (
-    <div className="flex items-center gap-2">
-      <div className="h-1.5 w-24 rounded-full bg-white/[0.06]">
+    <div className="flex items-center gap-2" role="img" aria-label={`Risk score ${pct}%`}>
+      <div className="h-1.5 w-24 rounded-full bg-white/[0.06]" aria-hidden="true">
         <div className={`h-1.5 rounded-full ${color}`} style={{ width: `${pct}%` }} />
       </div>
-      <span className="text-sm tabular-nums text-slate-400">{pct}%</span>
+      <span className="text-sm tabular-nums text-slate-400" aria-hidden="true">
+        {pct}%
+      </span>
     </div>
   );
 }

@@ -23,6 +23,10 @@ class ReportRepository:
         files = sorted(config.REPORTS_DIR.glob("*.json"))
         return files[-1].stem if files else None
 
+    def list_ids(self) -> list[str]:
+        files = sorted(config.REPORTS_DIR.glob("*.json"), reverse=True)
+        return [f.stem for f in files]
+
     def get_json(self, report_id: str) -> dict | None:
         path = config.REPORTS_DIR / f"{report_id}.json"
         return json.loads(path.read_text()) if path.exists() else None

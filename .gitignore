@@ -7,14 +7,18 @@ __pycache__/
 data/raw/*.csv
 data/processed/*.csv
 data/outputs/*.json
+data/outputs/*.jsonl
 data/outputs/reports/*.json
 data/outputs/reports/*.md
+data/outputs/evaluations/*.json
+data/outputs/evaluations/*.md
 data/outputs/chroma/
 intelligence/pipeline/artifacts/*.joblib
 !data/raw/.gitkeep
 !data/processed/.gitkeep
 !data/outputs/.gitkeep
 !data/outputs/reports/.gitkeep
+!data/outputs/evaluations/.gitkeep
 
 # Frontend
 platform/frontend/node_modules/
